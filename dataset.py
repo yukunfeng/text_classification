@@ -63,11 +63,11 @@ def create_data_iter(batch_size, device, data_root):
     return TEXT, LABEL, train_iter, val_iter, test_iter
 
 if __name__ == "__main__":
-    TEXT, LABEL, train_iter, val_iter, test_iter = create_data_iter(20, -1, "data")
+    TEXT, LABEL, train_iter, val_iter, test_iter = create_data_iter(20, -1, "data_2gram_no_oov")
     padding_index = TEXT.vocab.stoi["<pad>"]
     print(f"padding_index: {padding_index}")
     print(f"index 0 in vocab: {TEXT.vocab.itos[0]}")
-    for counter, batch in enumerate(val_iter, 1):
+    for counter, batch in enumerate(test_iter, 1):
         text_int, text_len = batch.text[0], batch.text[1]
         label_int = batch.label
         print(word_ids_to_sentence(text_int, TEXT.vocab))

@@ -7,7 +7,7 @@ class RNN(nn.Module):
 
     def __init__(self, vocab_size, embed_size, num_output, rnn_model='LSTM', use_last=False, embedding_tensor=None,
                  padding_index=0, hidden_size=64, num_layers=1, batch_first=True,
-                 encoder_model="rnn", dropout_p=0):
+                 encoder_model="rnn", dropout_p=0, bidirectional=True):
         """
 
         Args:
@@ -27,6 +27,7 @@ class RNN(nn.Module):
         self.use_last = use_last
         self.encoder_model = encoder_model
         self.hidden_size = hidden_size
+        self.bidirectional = bidirectional
         # embedding
         self.encoder = None
         if torch.is_tensor(embedding_tensor):
@@ -47,7 +48,7 @@ class RNN(nn.Module):
                 num_layers=num_layers,
                 dropout=self.dropout_p,
                 batch_first=True,
-                bidirectional=True
+                bidirectional=self.bidirectional
             )
         elif rnn_model == 'GRU':
             self.rnn = nn.GRU(
@@ -56,7 +57,7 @@ class RNN(nn.Module):
                 num_layers=num_layers,
                 dropout=self.dropout_p,
                 batch_first=True,
-                bidirectional=True
+                bidirectional=self.bidirectional
             )
         else:
             raise LookupError(' only support LSTM and GRU')
@@ -119,20 +120,24 @@ class RNN(nn.Module):
             row_indices = row_indices.cuda()
             col_indices = col_indices.cuda()
 
-        if self.use_last:
-            last_tensor=out_rnn[row_indices, col_indices, :]
-        else:
-            # use mean
-            batch_size, seq_len, out_size = out_rnn.shape
+        if self.bidirectional:
+            if self.use_last:
+                last_tensor=out_rnn[row_indices, col_indices, :]
+            else:
+                # use mean
+                batch_size, seq_len, out_size = out_rnn.shape
 
-            # forward + backward
-            bilstm_out = out_rnn.view(batch_size, seq_len, 2, self.hidden_size)
-            bilstm_out = bilstm_out[:, :, 0, :] + bilstm_out[:, :, 1, :]
-            # batch_size, hidden_size
-            bilstm_out = torch.sum(bilstm_out, dim=1)
-            last_tensor = bilstm_out / seq_lengths.type(bilstm_out.dtype).unsqueeze(1).expand(bilstm_out.shape)
-            #  last_tensor = out_rnn[row_indices, :, :]
-            #  last_tensor = torch.mean(last_tensor, dim=1)
+                # forward + backward
+                bilstm_out = out_rnn.view(batch_size, seq_len, 2, self.hidden_size)
+                bilstm_out = bilstm_out[:, :, 0, :] + bilstm_out[:, :, 1, :]
+                # batch_size, hidden_size
+                bilstm_out = torch.sum(bilstm_out, dim=1)
+                last_tensor = bilstm_out / seq_lengths.type(bilstm_out.dtype).unsqueeze(1).expand(bilstm_out.shape)
+                #  last_tensor = out_rnn[row_indices, :, :]
+                #  last_tensor = torch.mean(last_tensor, dim=1)
+        else:
+            out_rnn = out_rnn.sum(dim=1)
+            last_tensor = out_rnn / seq_lengths.type(out_rnn.dtype).unsqueeze(1).expand(out_rnn.shape)
 
         #  fc_input = self.bn2(last_tensor)
         # shape: (batch_size, label_num)

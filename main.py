@@ -44,6 +44,8 @@ parser.add_argument('--note', type=str, default="",
                     help='extra note in final one-line result output')
 parser.add_argument('--encoder', type=str, default="rnn",
                     help='rnn, avg')
+parser.add_argument('--bidirectional', action='store_true',
+                    help='help')
 args = parser.parse_args()
 print(args)
 
@@ -70,6 +72,7 @@ TEXT, LABEL, train_iter, val_iter, test_iter = dataset.create_data_iter(
 label_num = len(LABEL.vocab.itos)
 vocab_size = len(TEXT.vocab.itos)
 padding_index = TEXT.vocab.stoi["<pad>"]
+print(f"vocab_size: {vocab_size} label_num: {label_num}")
 
 model = model.RNN(
     vocab_size,
@@ -79,7 +82,8 @@ model = model.RNN(
     hidden_size=args.nhid,
     num_layers=args.nlayers,
     encoder_model=args.encoder,
-    dropout_p=args.dropout
+    dropout_p=args.dropout,
+    bidirectional=args.bidirectional
 ).to(device)
 
 
