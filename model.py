@@ -7,7 +7,7 @@ class RNN(nn.Module):
 
     def __init__(self, vocab_size, embed_size, num_output, rnn_model='LSTM', use_last=False, embedding_tensor=None,
                  padding_index=0, hidden_size=64, num_layers=1, batch_first=True,
-                 encoder_model="rnn", dropout_p=0, bidirectional=True):
+                 encoder_model="rnn", dropout_p=0, bidirectional=True, cnn_config=None):
         """
 
         Args:
@@ -28,6 +28,7 @@ class RNN(nn.Module):
         self.encoder_model = encoder_model
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
+        self.config = cnn_config
         # embedding
         self.encoder = None
         if torch.is_tensor(embedding_tensor):
@@ -67,8 +68,39 @@ class RNN(nn.Module):
         out_hidden_size = hidden_size
         if self.encoder_model == "avg":
             out_hidden_size = embed_size
+
+        if self.encoder_model == "cnn":
+            self.char_conv = nn.ModuleList([nn.Conv2d(
+                    self.config.char_dim_cnn, self.config.char_conv_fn[i],
+                    (self.config.char_conv_fh[i], self.config.char_conv_fw[i]),
+                    stride=1) for i in range(len(self.config.char_conv_fn))])
+            out_hidden_size = sum(self.config.char_conv_fn) 
+
         #  self.bn2 = nn.BatchNorm1d(out_hidden_size)
         self.fc = nn.Linear(out_hidden_size, num_output)
+
+    def forward_cnn(self, x, seq_lengths):
+        # inputs shape: ([20, 35, 21]) batch, bptt, max_wordlen
+        #  embeds shape: ([700, 21, 15])
+        embeds = self.encoder(x)
+        # unsqueeze shape: [700, 21, 1, 15]
+        # transpose shape: ([700, 15, 1, 21])
+        embeds = torch.transpose(torch.unsqueeze(embeds, 2), 1, 3).contiguous()
+        conv_result = []
+        for i, conv in enumerate(self.char_conv):
+            # Note some error may happen where some batch are very short when meeting a large filter
+            # conv(embeds) shape: ([700, 25, 1, 21])
+            char_conv = torch.squeeze(conv(embeds))
+            # after squeeze shape: [700, 25, 21])
+            #  torch.max out: (max, max_indices)
+            char_mp = torch.max(torch.tanh(char_conv), 2)[0]
+            conv_result.append(char_mp)
+            #  char_mp = char_mp.view(-1, x.size(1), char_mp.size(1))
+            # char_mp shape: ([20, 35, 25])
+        conv_result = torch.cat(conv_result, 1)
+        # conv_result shape: ([20, 35, 525])
+        out = self.fc(conv_result)
+        return out
 
     def forward_avg(self, x, seq_lengths):
         '''
@@ -94,6 +126,8 @@ class RNN(nn.Module):
             return self.forward_avg(x, seq_lengths)
         if self.encoder_model == "rnn":
             return self.forward_rnn(x, seq_lengths)
+        if self.encoder_model == "cnn":
+            return self.forward_cnn(x, seq_lengths)
 
 
     def forward_rnn(self, x, seq_lengths):

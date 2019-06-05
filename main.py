@@ -64,6 +64,19 @@ TEXT, LABEL, train_iter, val_iter, test_iter = dataset.create_data_iter(
     args.data
 )
 
+################################
+#  CNN highway network config  #
+################################
+class ConfigCNN(object):
+    def __init__(self, arg=None):
+        super(ConfigCNN, self).__init__()
+        self.char_dim_cnn = args.emsize
+        self.char_conv_fn = [40, 60, 20]
+        self.char_conv_fh = [1] * len(self.char_conv_fn)
+        self.char_conv_fw = [1, 2, 3]
+
+config = ConfigCNN()
+
 
 ###############################################################################
 # Build the model
@@ -83,7 +96,8 @@ model = model.RNN(
     num_layers=args.nlayers,
     encoder_model=args.encoder,
     dropout_p=args.dropout,
-    bidirectional=args.bidirectional
+    bidirectional=args.bidirectional,
+    cnn_config=config
 ).to(device)
 
 
