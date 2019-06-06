@@ -155,7 +155,7 @@ class RNN(nn.Module):
         title_bilstm_out = title_bilstm_out[:, :, 0, :] + title_bilstm_out[:, :, 1, :]
         # batch_size, hidden_size
         title_bilstm_out = torch.sum(title_bilstm_out, dim=1)
-        title_last = title_bilstm_out / title_len.type(title_bilstm_out.dtype).unsqueeze(1).expand(title_bilstm_out.shape)
+        title_last = title_bilstm_out / sorted_title_len.type(title_bilstm_out.dtype).unsqueeze(1).expand(title_bilstm_out.shape)
 
         # unsort (ascending)
         _, unsort_indexs = torch.sort(perm_idx, 0)
