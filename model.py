@@ -141,6 +141,18 @@ class RNN(nn.Module):
 
         x_embed = self.encoder(x)
         x_embed = self.drop_en(x_embed)
+
+        # not used. 
+        if False:
+            x_embed = x_embed.transpose(0, 1).contiguous()
+            seq_len, batch, emsize = x_embed.shape
+            for i in range(seq_len-1, 0, -1):
+                for j in range(1, 3):
+                    if i - j >= 0:
+                        x_embed[i] = x_embed[i] + (1.0 / (1 + j)) * x_embed[i - j]
+
+            x_embed = x_embed.transpose(0, 1).contiguous()
+
         packed_input = pack_padded_sequence(x_embed, seq_lengths.cpu().numpy(),batch_first=True)
 
         # out_rnn shape (batch, seq_len, hidden_size * num_directions)

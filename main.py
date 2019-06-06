@@ -71,9 +71,13 @@ class ConfigCNN(object):
     def __init__(self, arg=None):
         super(ConfigCNN, self).__init__()
         self.char_dim_cnn = args.emsize
-        self.char_conv_fn = [40, 60, 20]
+        self.char_conv_fn = [100, 50, 50, 40]
         self.char_conv_fh = [1] * len(self.char_conv_fn)
-        self.char_conv_fw = [1, 2, 3]
+        self.char_conv_fw = [1, 2, 3, 4]
+        # setting for short text
+        #  self.char_conv_fn = [100]
+        #  self.char_conv_fh = [1] * len(self.char_conv_fn)
+        #  self.char_conv_fw = [1]
 
 config = ConfigCNN()
 
