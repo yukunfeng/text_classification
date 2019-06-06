@@ -10,6 +10,6 @@
 # python -u main.py --encoder "rnn" --data "data" --emsize 200 --nhid 200 --nlayers 1 --epochs 30 --batch_size 128 --dropout 0.2 --lr 0.005
 # python -u main.py --encoder "cnn" --data "data" --emsize 30 --nhid 128 --nlayers 1 --epochs 30 --batch_size 128 --dropout 0.5 --lr 0.005
 # python -u main.py --encoder "cnn" --data "trec" --emsize 50 --nhid 128 --nlayers 1 --epochs 30 --batch_size 128 --dropout 0.5 --lr 0.005
-python -u main.py --encoder "avg" --bidirectional --data "data_with_only_title" --emsize 200 --nhid 200 --nlayers 1 --epochs 30 --batch_size 128 --dropout 0.2 --lr 0.005
-python -u main.py --encoder "rnn" --bidirectional --data "data_with_only_title" --emsize 200 --nhid 200 --nlayers 1 --epochs 30 --batch_size 128 --dropout 0.2 --lr 0.005
+# python -u main.py --encoder "avg" --bidirectional --data "data_with_title_tab" --emsize 200 --nhid 200 --nlayers 1 --epochs 30 --batch_size 128 --dropout 0.2 --lr 0.005
+python -u main.py --encoder "rnn" --bidirectional --data "data_with_title_tab" --emsize 200 --nhid 200 --nlayers 1 --epochs 30 --batch_size 128 --dropout 0.2 --lr 0.005
 # python -u main.py --encoder "cnn" --bidirectional --data "data_with_only_title" --emsize 200 --nhid 200 --nlayers 1 --epochs 30 --batch_size 128 --dropout 0.2 --lr 0.005

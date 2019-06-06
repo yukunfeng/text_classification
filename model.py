@@ -121,16 +121,16 @@ class RNN(nn.Module):
         out = self.fc(output)
         return out
 
-    def forward(self, x, seq_lengths):
+    def forward(self, x, seq_lengths, title, title_len):
         if self.encoder_model == "avg":
             return self.forward_avg(x, seq_lengths)
         if self.encoder_model == "rnn":
-            return self.forward_rnn(x, seq_lengths)
+            return self.forward_rnn(x, seq_lengths, title, title_len)
         if self.encoder_model == "cnn":
             return self.forward_cnn(x, seq_lengths)
 
 
-    def forward_rnn(self, x, seq_lengths):
+    def forward_rnn(self, x, seq_lengths, title, title_len):
         '''
         Args:
             x: (batch, time_step, input_size)
@@ -138,20 +138,33 @@ class RNN(nn.Module):
         Returns:
             num_output size
         '''
+        sorted_title_len, perm_idx = torch.sort(title_len, 0, descending=True)
+        sorted_title = title[perm_idx, :]
+
+        # computing title
+        title_emb = self.encoder(sorted_title)
+        title_emb = self.drop_en(title_emb)
+        packed_title_in = pack_padded_sequence(title_emb, sorted_title_len.cpu().numpy(),batch_first=True)
+        packed_title_out, _ = self.rnn(packed_title_in, None)
+        title_out, _ = pad_packed_sequence(packed_title_out, batch_first=True)
+
+        batch_size, title_seq_len, out_size = title_out.shape
+
+        # forward + backward
+        title_bilstm_out = title_out.view(batch_size, title_seq_len, 2, self.hidden_size)
+        title_bilstm_out = title_bilstm_out[:, :, 0, :] + title_bilstm_out[:, :, 1, :]
+        # batch_size, hidden_size
+        title_bilstm_out = torch.sum(title_bilstm_out, dim=1)
+        title_last = title_bilstm_out / title_len.type(title_bilstm_out.dtype).unsqueeze(1).expand(title_bilstm_out.shape)
+
+        # unsort (ascending)
+        _, unsort_indexs = torch.sort(perm_idx, 0)
+        # shape: (bptt * batch) * dim
+        title_last = title_last[unsort_indexs]
 
         x_embed = self.encoder(x)
         x_embed = self.drop_en(x_embed)
 
-        # not used. 
-        if False:
-            x_embed = x_embed.transpose(0, 1).contiguous()
-            seq_len, batch, emsize = x_embed.shape
-            for i in range(seq_len-1, 0, -1):
-                for j in range(1, 3):
-                    if i - j >= 0:
-                        x_embed[i] = x_embed[i] + (1.0 / (1 + j)) * x_embed[i - j]
-
-            x_embed = x_embed.transpose(0, 1).contiguous()
 
         packed_input = pack_padded_sequence(x_embed, seq_lengths.cpu().numpy(),batch_first=True)
 
@@ -187,5 +200,5 @@ class RNN(nn.Module):
 
         #  fc_input = self.bn2(last_tensor)
         # shape: (batch_size, label_num)
-        out = self.fc(last_tensor)
+        out = self.fc(last_tensor + title_last)
         return out

@@ -124,8 +124,9 @@ def evaluate(data_iter):
         for counter, batch in enumerate(data_iter, 1):
             text, text_len = batch.text[0], batch.text[1]
             label = batch.label
+            title, title_len = batch.title[0], batch.title[1]
 
-            output = model(text, text_len)
+            output = model(text, text_len, title, title_len)
             _, predicted_label = output.view(-1, label_num).max(dim=1)
             correct += (predicted_label == label).sum().item()
             example_num += len(label)
@@ -141,10 +142,12 @@ def train():
     for counter, batch in enumerate(train_iter, 1):
         text, text_len = batch.text[0], batch.text[1]
         label = batch.label
+        title, title_len = batch.title[0], batch.title[1]
+
 
         #  model.zero_grad()
         optimizer.zero_grad()
-        output = model(text, text_len)
+        output = model(text, text_len, title, title_len)
         loss = criterion(output, label)
         loss.backward()
 
